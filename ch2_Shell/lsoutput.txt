@@ -1,0 +1,7 @@
+total 0
+-rw-r--r-- 1 tobby tobby 0 Jul 21 13:36 lsoutput.txt
+    PID TTY          TIME CMD
+  30560 pts/0    00:00:00 bash
+  30721 pts/0    00:00:00 dx
+  30756 pts/0    01:51:04 dxexec
+  31537 pts/0    00:00:00 ps

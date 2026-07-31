@@ -1,0 +1,353 @@
+#!/bin/bash
+
+menuChoice=""
+currentCD=""
+titleFile="title.cdb"
+tracksFile="tracks.cdb"
+tempFile=./temp/cdb.$$
+tempInputFile=./temp/inputcdb.$$
+trap "rm -f $tempFile $tempInputFile" EXIT
+
+
+GetReturn() {
+	echo -n "Press return to continue... "
+	read x
+	return 0
+}
+
+
+GetConfirm() {
+	echo -n "Are you sure? [yes/no]: "
+	while true
+	do
+		read decision
+		case "$decision" in 
+			[Yy] | [Yy][Ee][Ss] )
+				return 0;;
+			[Nn] | [Nn][Oo] )
+				echo
+				echo "Cancelled"
+				return 1;;
+			* )
+				echo "Please enter yes or no";;
+		esac
+	done
+}
+
+
+SetMenuChoice() {
+	clear
+	echo "Options :-"
+	echo
+	echo "	a) Add a new CD"
+	echo "	f) Find CDs"
+	echo "	c) Count the CDs and tracks in the catalog"
+	
+	if [ "$cdCatName" != "" ]
+	then
+		echo "	l) List tracks on CD: $cdTitle"
+		echo "	r) Remove CD: $cdTitle"
+		echo "	u) Update track information for CD: $cdTitle"
+	fi
+
+	echo "	q) Quit"
+	echo
+	echo -n "Please enter choice then press return: "
+	read menuChoice
+	return
+}
+
+
+InsertTitle() {
+	echo $* >> $titleFile
+	return
+}
+
+
+InsertTrack() {
+	echo $* >> $tracksFile
+	return
+}
+
+
+ContainComma() {
+	inputTitle=$1
+	cleanTitle="${inputTitle%%,*}"
+	if [ "$inputTitle" != "$cleanTitle" ]
+	then 
+		echo "Sorry, no commas allowed"
+		return 0
+	fi
+	return 1
+}
+
+
+AddRecordTracks() {
+	echo
+	echo "Enter track information for CD: $cdCatName"
+	echo "When no more tracks, enter q"
+	cdTrack=1
+	trackTitle=""
+	while [ "$trackTitle" != "q" ]
+	do
+		# check if title contains commas
+		echo -n "Please enter the title of Track $cdTrack (no comma):  "
+		read trackTitle
+		if ContainComma "$trackTitle"
+		then
+			continue
+		fi
+		
+		# add track infos to track file
+		if [ -n "$trackTitle" ] && [ "$trackTitle" != "q" ]
+		then
+			InsertTrack "$cdCatName,$cdTrack,$trackTitle"
+			cdTrack=$((cdTrack+1))
+		fi
+	done
+}
+
+
+AddRecords() {
+	entry=0
+	while [ $((entry)) -lt 4 ]
+	do
+		# get the infomation
+		for term in "catalog name" "title" "type" "artist/composer"
+		do
+			echo -n "Enter CD $term name (no comma): "
+			read input
+			if ContainComma "$input"
+			then 
+				rm -f $tempInputFile
+				break
+			else
+				echo -n "$input," >> $tempInputFile
+				entry=$((entry+1))
+			fi
+		done
+	done
+
+	IFS=","
+	read cdCatName cdTitle cdType cdAC < $tempInputFile
+	IFS=" "
+	
+	# check user want to enter the information
+	echo
+	echo "About to add new entry:"
+	echo "$cdCatName, $cdTitle, $cdType, $cdAC"
+
+	if GetConfirm
+	then
+		InsertTitle $(cat $tempInputFile)
+		AddRecordTracks
+	fi
+
+	rm $tempInputFile
+	
+}
+
+
+ListTracks() {
+	if [ "$cdCatName" == "" ]
+	then
+		echo "No CD selected yet"
+		return
+	else
+		grep "^${cdCatName}," $tracksFile > $tempFile
+		numTracks=$(wc -l $tempFile)
+		if [ "$numTracks" = "0" ]
+		then
+			echo "No tracks found for $cdTitle"
+		else {
+			echo
+			echo "$cdTitle :-"
+			echo
+			cut -f 2- -d , $tempFile
+			echo
+		} | ${PAGER:-more}
+		fi
+	fi
+	GetReturn
+	return
+}
+
+
+FindCD() {
+	if [ "$1" == "n" ]
+	then
+		askList='y'
+	else
+		askList='n'
+	fi
+
+	cdCatName=""
+	echo -n "Enter a string to search for in the CD titles: "
+	read searchStr
+	if [ "$searchStr" == "" ]
+	then
+		return 0
+	fi
+
+	grep "$searchStr" $titleFile > $tempFile
+
+	set $(wc -l $tempFile)
+	linesFound=$1
+
+	case "$linesFound" in
+	0)	echo "Sorry, nothing found"
+		GetReturn
+		return 0
+		;;
+	1)	;;
+	2)	echo "Sorry, not unique"
+		echo "Found the following"
+		cat $tempFile
+		GetReturn
+		return 0
+	esac
+
+	IFS=","
+	read cdCatName cdTitle cdType cdAC < $tempFile
+	IFS=" "
+
+	if [ -z "$cdCatName" ]
+	then
+		echo "Sorry, extract null catalog field from $tempFile"
+		GetReturn
+		return 0
+	fi
+
+	echo
+	echo "Catlog Name: $cdCatName"
+	echo "Title: $cdTitle"
+	echo "Type: $cdType"
+	echo "Artist/Comproser: $cdAC"
+	echo
+	GetReturn
+
+	if [ "$askList" == "y" ]
+	then
+		echo -n "View tracks for this CD?[y/n] "
+		read answer
+		if [ "$answer" == "y" ]
+		then
+			echo
+			ListTracks
+			echo
+		fi
+	fi
+	return 0
+}
+
+
+UpdateCD() {
+	if [ -z "$cdCatName" ]
+	then 
+		echo "You need to select a CD first"
+		FindCD "n"
+	fi
+
+	if [ -n "$cdCatName" ]
+	then
+		echo "Current tracks are:-"
+		ListTracks
+		echo
+		echo "This will re-enter the tracks for $cdTitle"
+		if GetConfirm 
+		then
+			grep -v "^${cdCatName}," $tracksFile > $tempFile
+			mv $tempFile $tracksFile
+			echo
+			AddRecordTracks
+		fi
+	fi
+	return
+}
+
+
+CountCDs() {
+	set $(wc -l $titleFile)
+	numTitles=$1
+	set $(wc -l $tracksFile)
+	numTracks=$1
+
+	echo "Found $numTitles CDs, with a total of $numTracks tracks"
+	GetReturn
+	return
+}
+
+
+RemoveRecords() {
+	if [ -z "$cdCatName" ]
+	then
+		echo "You must select a CD first"
+		FindCD "n"
+	fi
+
+	if [ -n "$cdCatName" ]
+	then
+		echo "You are about to delete CD: $cdTitle"
+		if GetConfirm
+		then
+			grep -v "^${cdCatName}," $titleFile > $tempFile
+			mv $tempFile $titleFile
+			grep -v "^${cdCatName}," $tracksFile > $tempFile
+			mv $tempFile $tracksFile
+			cdCatName=""
+			echo "Entry moved"
+		fi
+		GetReturn
+	fi
+	return
+}
+
+
+# ---- Function Tests ---------------------------------------------------------------
+
+# Test AddRecords()
+#AddRecords
+# echo "now titleFile has"
+# cat $titleFile
+
+# Test ListTracks()
+# ListTracks
+
+# Test FindCD()
+# FindCD
+
+#UpdateCD
+
+#CountCDs
+
+#RemoveRecords
+
+
+# ---- Main -----------------------------------------------------------------
+
+rm -f $tempFile $tempInputFile
+
+echo
+echo 
+echo "---- Mini CD Manager ----"
+sleep 1
+
+quit=n
+while [ "$quit" != "y" ]
+do
+	SetMenuChoice
+	case "$menuChoice" in
+		a) AddRecords;;
+		r) RemoveRecords;;
+		f) FindCD y;;
+		u) UpdateCD;;
+		c) CountCDs;;
+		l) ListTracks;;
+		q | Q) quit=y;;
+		*) echo "Sorry, choice not recognized";;
+	esac
+done
+
+rm -f $tempFile $tempInputFile
+echo "Finished"
+exit 0

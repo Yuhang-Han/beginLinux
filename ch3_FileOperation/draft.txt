@@ -1,0 +1,12 @@
+AFEPack is a general-purpose C++ library for numerical solutions of partial
+differential equations. With over two decades development, AFEPack has been suc-
+cessfully applied for scientific and engineering computational problems in a variety
+of areas such as computational fluid dynamics, electronic structure calculations, com-
+putational micromagnetics. In this paper, design philosophy of the library, algorithms
+and data structures used in the discretization of governing equations, numerical linear
+algebra for the discretized system, as well as the pre-processing and post-processing of
+the simulations, will be described systematically for the AFEPack. The realization of
+two main features of the library, i.e., adaptive mesh methods and parallel computing,
+will be introduced in detail. The potential of the library for large scale scientific/engi-
+neering problems would be demonstrated by several examples. The future works on
+developing the library will also be discussed.

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "Please input the condition"
+read condition
+
+if ([ "$condition" = 1 ] && echo "true") || echo "false" 
+then
+	echo "in if"
+else
+	echo "in else"
+fi
+
+exit 0

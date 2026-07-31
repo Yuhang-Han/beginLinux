@@ -1,0 +1,5 @@
+    PID TTY          TIME CMD
+  30560 pts/0    00:00:00 bash
+  30721 pts/0    00:00:00 dx
+  30756 pts/0    01:57:49 dxexec
+  31574 pts/0    00:00:00 ps

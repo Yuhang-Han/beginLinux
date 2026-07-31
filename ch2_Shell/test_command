@@ -1,0 +1,4 @@
+if test -f fred.c
+then
+echo There is a file called fred.c
+fi
