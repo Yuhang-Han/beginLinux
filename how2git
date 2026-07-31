@@ -1,0 +1,18 @@
+# 查看修改
+git status
+git diff
+
+# 添加修改
+git add .
+
+# 检查即将提交的内容
+git diff --staged
+
+# 创建版本
+git commit -m "描述本次修改"
+
+# 上传
+git push
+
+# 查看最近一次提交
+git show
