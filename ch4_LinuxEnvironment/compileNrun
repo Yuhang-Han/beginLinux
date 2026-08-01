@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # this shell script compile and run the c program
-# usage $ ./compileNrun filename var1 var2 ...
+# usage $ ./compileNrun filename.c var1 var2 ...
 
 mkdir -p -v build
 
-filename=$1
+cname=$1
+filename="${cname%.*}"
 shift
 vars=$@
 
