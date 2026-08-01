@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# this shell script compile and run the c program
+# usage $ ./compileNrun filename var1 var2 ...
+
+mkdir -p -v build
+
+filename=$1
+shift
+vars=$@
+
+gcc "${filename}.c" -o "./build/$filename"
+
+./build/$filename $vars
